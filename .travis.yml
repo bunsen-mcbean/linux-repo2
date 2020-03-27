@@ -1,0 +1,24 @@
+
+dist: bionic
+
+env:
+    MRAN_SNAPSHOT: 2020-01-01
+    CRAN_MIRROR: 'https://cran.microsoft.com/snapshot/$MRAN_SNAPSHOT'
+    R_LIBS_USER: libs
+
+install:
+  - sudo apt update
+  - sudo apt install -y flatpak python3 python3-pip
+  - bash install-flatpak.sh
+  - python3 -m pip install -r requirements.txt
+
+script:
+  - export R_VERSION=`flatpak run org.jamovi.jamovi --r-version`
+
+  - mkdir -p $R_LIBS_USER
+  - mkdir -p $MRAN_SNAPSHOT
+  - python3 download.py --packages drat ggplot2 jsonlite
+  - flatpak run --devel org.jamovi.jamovi -R CMD INSTALL --build *.tar.gz --library=$R_LIBS_USER
+  - flatpak run --devel org.jamovi.jamovi -R -e ".libPaths('$R_LIBS_USER'); print(.libPaths()); options(dratRepo='$MRAN_SNAPSHOT'); lapply(list.files(pattern='R_x86_64-pc-linux-gnu\\\\.tar\\\\.gz$'), drat::insertPackage); invisible(NULL)"
+  - ls $MRAN_SNAPSHOT
+  
